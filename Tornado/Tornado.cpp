@@ -16,17 +16,31 @@ bool isPanning = false;      // Is the camera currently moving?
 float panProgress = 0.0f;    // 0.0 = Start (Tornado), 1.0 = End (House)
 float panSpeed = 0.005f;     // How fast the camera moves
 
-float startCamX = 0.0f, startCamY = 15.0f, startCamZ = 25.0f;
-float startTargetX = 0.0f, startTargetY = 2.0f, startTargetZ = 0.0f;
+//SCENE_TORNADO camera positions
+float tornadoCamX = 0.0f, tornadoCamY = 15.0f, tornadoCamZ = 25.0f;
+float tornadoTargetX = 0.0f, tornadoTargetY = 2.0f, tornadoTargetZ = 0.0f;
 
-float endCamX = -30.0f, endCamY = 1.0f, endCamZ = 20.0f;
-float endTargetX = 40.0f, endTargetY = 2.0f, endTargetZ = 0.0f;
+//SCENE_HOUSE camera positions
+float houseCamX = -30.0f, houseCamY = 1.0f, houseCamZ = 20.0f;
+float houseTargetX = 40.0f, houseTargetY = 2.0f, houseTargetZ = 0.0f;
+
+//SCENE_TORNADO_CHASE camera positions
+float chaseOffsetX = 3.0f, chaseOffsetY = 15.0f, chaseOffsetZ = 25.0f;
+
+enum SceneState {
+    SCENE_TORNADO,
+    SCENE_HOUSE,
+    SCENE_TORNADO_CHASE
+};
+
+SceneState currentScene = SCENE_TORNADO;
 
 // ---Tornado world position variables---
 float tornadoPosX = 0.0f;
 float tornadoPosY = 0.0f;
 float tornadoPosZ = 0.0f;
-float tornadoSpeed = 1.0f;
+float tornadoSpeed = 2.0f;
+bool tornadoActive = false;
 
 // ---House world position variables---
 float housePosX = -25.0f;
@@ -364,7 +378,7 @@ void drawGround() {
     glEnd();
 }
 
-StarField starField(200, 100.0f, 25.0f, 100.0f);
+StarField starField(200, 100.0f, 60.0f, 100.0f);
 Tornado tornado;
 
 void display() {
@@ -397,42 +411,57 @@ void display() {
 
 void timer(int) {
     globalTime += dt;
-
-    // ---Moves the tornado toward the house---
-    float dx = housePosX - tornadoPosX;
-    float dz = housePosZ - tornadoPosZ;
-
-    float dist = sqrt(dx * dx + dz * dz);
-
-    if (dist > 0.001f) {
-        dx /= dist;
-        dz /= dist;
-
-        tornadoPosX += dx * tornadoSpeed * dt;
-        tornadoPosZ += dz * tornadoSpeed * dt;
-    }
-
     tornado.update();
 
-    // ---Check for collision---
-    if (!houseDestroyed && dist < houseRadius+tornadoRadius)
-        houseDestroyed = true;
+	// ---Activate tornado movement---
+    if (currentScene == SCENE_TORNADO_CHASE)
+		tornadoActive = true;
 
-    if (isPanning) {
-        if (panProgress < 1.0f) {
-            panProgress += panSpeed;
-            if (panProgress > 1.0f) panProgress = 1.0f; // Cap at 1.0
+    // ---Moves the tornado toward the house---
+    if (tornadoActive) {
+        float dx = housePosX - tornadoPosX;
+        float dz = housePosZ - tornadoPosZ;
 
-            // Interpolate Position
-            camX = startCamX + (endCamX - startCamX) * panProgress;
-            camY = startCamY + (endCamY - startCamY) * panProgress;
-            camZ = startCamZ + (endCamZ - startCamZ) * panProgress;
+        float dist = sqrt(dx * dx + dz * dz);
 
-            // Interpolate Target (Where we are looking)
-            targetX = startTargetX + (endTargetX - startTargetX) * panProgress;
-            targetY = startTargetY + (endTargetY - startTargetY) * panProgress;
-            targetZ = startTargetZ + (endTargetZ - startTargetZ) * panProgress;
+        if (dist > 0.001f) {
+            dx /= dist;
+            dz /= dist;
+
+            tornadoPosX += dx * tornadoSpeed * dt;
+            tornadoPosZ += dz * tornadoSpeed * dt;
         }
+
+        // ---Check for collision---
+        if (!houseDestroyed && dist < houseRadius + tornadoRadius)
+            houseDestroyed = true;
+    }
+
+	// ---Camera Panning Logic | State machine---
+    if (currentScene == SCENE_HOUSE) {
+        panProgress += panSpeed;
+        if (panProgress > 1.0f)
+            panProgress = 1.0f;
+
+        // Interpolate Position to house
+        camX = tornadoCamX + (houseCamX - tornadoCamX) * panProgress;
+        camY = tornadoCamY + (houseCamY - tornadoCamY) * panProgress;
+        camZ = tornadoCamZ + (houseCamZ - tornadoCamZ) * panProgress;
+
+        targetX = tornadoTargetX + (houseTargetX - tornadoTargetX) * panProgress;
+        targetY = tornadoTargetY + (houseTargetY - tornadoTargetY) * panProgress;
+        targetZ = tornadoTargetZ + (houseTargetZ - tornadoTargetZ) * panProgress;
+    }
+    else if (currentScene == SCENE_TORNADO_CHASE) {
+        //camera follows tornado position
+		camX = tornadoPosX - chaseOffsetX; 
+        camY = tornadoPosY + chaseOffsetY;
+        camZ = tornadoPosZ - chaseOffsetZ;
+
+        //look at midpoint between tornado and house
+		targetX = (tornadoPosX + housePosX) * 0.5f; 
+        targetY = 2.0f;
+        targetZ = (tornadoPosZ + housePosZ) * 0.5f;
     }
 
     glutPostRedisplay();
@@ -473,8 +502,14 @@ void init() {
 }
 
 void keyboard(unsigned char key, int x, int y) {
-    if (key == ' ') { // Press Spacebar to start scene 2
-        isPanning = true;
+    if (key == ' ') { // Press Spacebar to change scenes
+        if (currentScene == SCENE_TORNADO) {
+            currentScene = SCENE_HOUSE;
+			panProgress = 0.0f;
+        }
+        else if (currentScene == SCENE_HOUSE) {
+            currentScene = SCENE_TORNADO_CHASE;
+        }
     }
 }
 
@@ -493,8 +528,8 @@ int main(int argc, char** argv) {
     gluPerspective(60, 1200.0 / 720.0, 1, 100);                 //60 degs (camera fov(vertical) | 1200720 aspect ratio of window | ` near clipping plane (dont draw things up close) | 100 far clipping plane (dont draw things too far))
     glMatrixMode(GL_MODELVIEW);
 
-    camX = startCamX; camY = startCamY; camZ = startCamZ;
-    targetX = startTargetX; targetY = startTargetY; targetZ = startTargetZ;
+    camX = tornadoCamX; camY = tornadoCamY; camZ = tornadoCamZ;
+    targetX = tornadoTargetX; targetY = tornadoTargetY; targetZ = tornadoTargetZ;
 
     glutDisplayFunc(display);
     glutKeyboardFunc(keyboard);
