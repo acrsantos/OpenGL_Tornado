@@ -16,15 +16,15 @@ bool isPanning = false;      // Is the camera currently moving?
 float panProgress = 0.0f;    // 0.0 = Start (Tornado), 1.0 = End (House)
 float panSpeed = 0.005f;     // How fast the camera moves
 
-//SCENE_TORNADO camera positions
+// SCENE_TORNADO camera positions
 float tornadoCamX = 0.0f, tornadoCamY = 15.0f, tornadoCamZ = 25.0f;
 float tornadoTargetX = 0.0f, tornadoTargetY = 2.0f, tornadoTargetZ = 0.0f;
 
-//SCENE_HOUSE camera positions
+// SCENE_HOUSE camera positions
 float houseCamX = -30.0f, houseCamY = 1.0f, houseCamZ = 20.0f;
 float houseTargetX = 40.0f, houseTargetY = 2.0f, houseTargetZ = 0.0f;
 
-//SCENE_TORNADO_CHASE camera positions
+// SCENE_TORNADO_CHASE camera positions
 float chaseOffsetX = 3.0f, chaseOffsetY = 15.0f, chaseOffsetZ = 25.0f;
 
 enum SceneState {
@@ -53,7 +53,7 @@ float tornadoRadius = 3.0f;
 bool houseDestroyed = false;
 
 float globalTime = 0.0f;
-const float dt = 0.016f; //timestep is 60 fps = 1/60 = 0.016
+const float dt = 0.016f; // timestep is 60 fps = 1/60 = 0.016
 
 class RandomNumberEngine {
 private:
@@ -69,7 +69,7 @@ public:
     }
 
     float angle() {
-        return range(0.0f, 6.28318f); //0 to 2pi
+        return range(0.0f, 6.28318f); // 0 to 2pi
     }
 };
 
@@ -90,8 +90,8 @@ private:
         stars.reserve(count);
 
         for (int i = 0; i < count; i++) {
-            float x = rng.range(-0.5f, 0.5f) * width;                       //gives range(-width/2, +width/2) because of rng.range(-0.5f, 0.5f)
-            float y = (0.7f + rng.range(-0.5f, 0.5f)) * (height - 0.7f);    //0.7f lifts the points up in y coordinate to ensure that no stars overlap the ground
+            float x = rng.range(-0.5f, 0.5f) * width;                       // gives range(-width/2, +width/2) because of rng.range(-0.5f, 0.5f)
+            float y = (0.7f + rng.range(-0.5f, 0.5f)) * (height - 0.7f);    // 0.7f lifts the points up in y coordinate to ensure that no stars overlap the ground
             float z = rng.range(-0.5f, 0.5f) * depth;
             stars.push_back({ x, y, z });
         }
@@ -122,24 +122,24 @@ private:
     std::vector<Grain> grains;
     const int maxParticles = 4000;
 
-    const float height = 15.0f,     //limit to the height the tornado can reach      
-                swayAmount = 1.0f,  //how much the tornado sways left/right
-                swaySpeed = 0.5f;   //how fast it sways
+    const float height = 15.0f,     // limit to the height the tornado can reach      
+                swayAmount = 1.0f,  // how much the tornado sways left/right
+                swaySpeed = 0.5f;   // how fast it sways
 
     RandomNumberEngine rng;
 
     void tornadoCenter(float y, float& cx, float& cz) {
-        float baseX = sinf(y * 0.3f) * 0.5f;            //y*0.3 controls the frequency of the wave along the y axis | sin() for smooth oscillation along the x axis
-        float baseZ = cosf(y * 0.3f) * 0.5f;            //cos() for smooth oscillation along the z axis
+        float baseX = sinf(y * 0.3f) * 0.5f;            // y*0.3 controls the frequency of the wave along the y axis | sin() for smooth oscillation along the x axis
+        float baseZ = cosf(y * 0.3f) * 0.5f;            // cos() for smooth oscillation along the z axis
 
-        //entire tornado movement using sinusoidal motion
-        cx = baseX + sinf(y * 0.2f + globalTime * swaySpeed) * swayAmount;              //y*0.2f is same for baseX | globalTime*swaySpeed is time dependent, it allows it to move continously over time
-        cz = baseZ + cosf(y * 0.2f + 3.1415f / 2 + globalTime * swaySpeed) * swayAmount;//use of cos for phase shifted motion | pi/2 ensures that x and z sway isnt perfectly circular, it looks more erattic
+        // entire tornado movement using sinusoidal motion
+        cx = baseX + sinf(y * 0.2f + globalTime * swaySpeed) * swayAmount;              // y*0.2f is same for baseX | globalTime*swaySpeed is time dependent, it allows it to move continously over time
+        cz = baseZ + cosf(y * 0.2f + 3.1415f / 2 + globalTime * swaySpeed) * swayAmount;// use of cos for phase shifted motion | pi/2 ensures that x and z sway isnt perfectly circular, it looks more erattic
     }
 
-    //returns the radius of the funnel shape at a given height
+    // returns the radius of the funnel shape at a given height
     float funnelRadius(float y) {
-        return 0.2f + (y / height) * 2.0f;  //y/height to normalize (only 0-1 range) | 2.0 scales it to the maximum radius of 2 | 0.2 is the minimum radius
+        return 0.2f + (y / height) * 2.0f;  // y/height to normalize (only 0-1 range) | 2.0 scales it to the maximum radius of 2 | 0.2 is the minimum radius
     }
 
     void spawn() {
@@ -164,15 +164,15 @@ public:
             float cx, cz;
             tornadoCenter(g.y, cx, cz);
 
-            g.angle += 1.0f;                            //speed in which the particle rise
+            g.angle += 1.0f;                                     // speed in which the particle rise
 
-            float r = funnelRadius(g.y);                //set distance from center line based on the y axis
-            g.x = cx + cosf(g.angle) * r;               //convert polar coordinates to cartesian (x = center + cos(angle) * radius)
+            float r = funnelRadius(g.y);                         // set distance from center line based on the y axis
+            g.x = cx + cosf(g.angle) * r;                        // convert polar coordinates to cartesian (x = center + cos(angle) * radius)
             g.z = cz + sinf(g.angle) * r;
 
-            g.y += 0.03f + rng.range(0.0f, 0.005f) * 0.005f;     //raise grain at @ y value with some randomness
+            g.y += 0.03f + rng.range(0.0f, 0.005f) * 0.005f;     // raise grain at @ y value with some randomness
 
-            if (g.y > height) {                         //reset to y = 0
+            if (g.y > height) {                                  // reset to y = 0
                 g.y = 0;
                 g.angle = rng.angle();
             }
@@ -191,7 +191,8 @@ public:
     }
 };
 
-//Set Texture
+// --House--
+// Set Texture
 GLuint texWall;
 GLuint texDoor;
 GLuint texWindow;
@@ -228,7 +229,7 @@ GLuint loadBMP(const char* filename) {
     return texID;
 }
 
-//Cube for House
+// Cube for House
 void texturedCube(float size, GLuint texture, float repeat = 1.0f) {
     float s = size / 2;
 
@@ -287,7 +288,7 @@ void texturedCube(float size, GLuint texture, float repeat = 1.0f) {
     glDisable(GL_TEXTURE_2D);
 }
 
-//Roof
+// Roof
 void texturedRoof(float width, float height, float depth, GLuint texture, float repeat = 1.0f) {
     float w = width / 2;
     float d = depth / 2;
@@ -336,14 +337,14 @@ void texturedRoof(float width, float height, float depth, GLuint texture, float 
 
 }
 
-//3D Box
+// 3D Box
 void house() {
     glMatrixMode(GL_MODELVIEW);
 
     glScalef(scaleX, scaleY, scaleZ);
 
     glPushMatrix();
-    texturedCube(2, texWall); //House Base
+    texturedCube(2, texWall); // House Base
 
     glTranslatef(0, 1, 0);
     glPushMatrix();                     // Roof
@@ -367,6 +368,7 @@ void house() {
     glFlush();
 }
 
+// --Display Functions--
 void drawGround() {
     glColor3f(0.45f, 0.35f, 0.25f);
 
@@ -382,13 +384,13 @@ StarField starField(200, 100.0f, 60.0f, 100.0f);
 Tornado tornado;
 
 void display() {
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //clears color and depth values of previous frame
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // clears color and depth values of previous frame
     glLoadIdentity();
     
-    gluLookAt(      //position of camera
-        camX, camY, camZ,   //camera position
-        targetX, targetY, targetZ,    //look-at target point
-        0, 1, 0);   //up direction
+    gluLookAt(      
+        camX, camY, camZ,             // camera position
+        targetX, targetY, targetZ,    // look-at target point
+        0, 1, 0);                     // up direction
     
     drawGround();
     starField.draw();
@@ -422,7 +424,7 @@ void timer(int) {
         float dx = housePosX - tornadoPosX;
         float dz = housePosZ - tornadoPosZ;
 
-        float dist = sqrt(dx * dx + dz * dz);
+        float dist = sqrt(pow(dt, 2.0) + pow(dz, 2.0));
 
         if (dist > 0.001f) {
             dx /= dist;
@@ -453,12 +455,12 @@ void timer(int) {
         targetZ = tornadoTargetZ + (houseTargetZ - tornadoTargetZ) * panProgress;
     }
     else if (currentScene == SCENE_TORNADO_CHASE) {
-        //camera follows tornado position
+        // camera follows tornado position
 		camX = tornadoPosX - chaseOffsetX; 
         camY = tornadoPosY + chaseOffsetY;
         camZ = tornadoPosZ - chaseOffsetZ;
 
-        //look at midpoint between tornado and house
+        // look at midpoint between tornado and house
 		targetX = (tornadoPosX + housePosX) * 0.5f; 
         targetY = 2.0f;
         targetZ = (tornadoPosZ + housePosZ) * 0.5f;
@@ -515,17 +517,17 @@ void keyboard(unsigned char key, int x, int y) {
 
 int main(int argc, char** argv) {
     glutInit(&argc, argv);
-    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);   //double buffering | rgb color model | enables 3d depth (z buffer)
+    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);   // double buffering | rgb color model | enables 3d depth (z buffer)
     glutInitWindowSize(1200, 720);
     glutCreateWindow("Tornado");
     
-    glEnable(GL_DEPTH_TEST);                                    //objects hide behind others
+    glEnable(GL_DEPTH_TEST);                                    // objects hide behind others
     glClearColor(0.05f, 0.05f, 0.1f, 1.0f);
     
     //camera stuff
     glMatrixMode(GL_PROJECTION);                                
     glLoadIdentity();
-    gluPerspective(60, 1200.0 / 720.0, 1, 100);                 //60 degs (camera fov(vertical) | 1200720 aspect ratio of window | ` near clipping plane (dont draw things up close) | 100 far clipping plane (dont draw things too far))
+    gluPerspective(60, 1200.0 / 720.0, 1, 100);                 // 60 degs (camera fov(vertical) | 1200720 aspect ratio of window | ` near clipping plane (dont draw things up close) | 100 far clipping plane (dont draw things too far))
     glMatrixMode(GL_MODELVIEW);
 
     camX = tornadoCamX; camY = tornadoCamY; camZ = tornadoCamZ;
